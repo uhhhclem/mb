@@ -1,0 +1,313 @@
+{
+  "CurrentEra": 0,
+  "Card": {
+    "Number": 0,
+    "Title": "",
+    "Era": 0,
+    "ActionPoints": 0,
+    "IsWhite": false,
+    "ResourceBonus": null,
+    "Revolt": null,
+    "AdvancingArmies": null,
+    "Modifier": 0,
+    "IsAscendant": false,
+    "IsAvaricia": false,
+    "IsSpanish": false
+  },
+  "ActionPoints": 0,
+  "TradeGoods": 0,
+  "PalisadeIndex": 0,
+  "Palisades": [
+    {
+      "Label": "4F",
+      "Value": 4
+    },
+    {
+      "Label": "4E",
+      "Value": 4
+    },
+    {
+      "Label": "4D",
+      "Value": 4
+    },
+    {
+      "Label": "3C",
+      "Value": 3
+    },
+    {
+      "Label": "3B",
+      "Value": 3
+    },
+    {
+      "Label": "2A",
+      "Value": 2
+    }
+  ],
+  "IsBreached": false,
+  "Lands": [
+    {
+      "Warpath": 0,
+      "Name": "Ho-Chunk Homeland",
+      "Space": 1,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 0,
+      "Name": "Red Wing",
+      "Space": 2,
+      "IsWilderness": true
+    },
+    {
+      "Warpath": 0,
+      "Name": "Lizard Mound",
+      "Space": 3,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 0,
+      "Name": "Adtalan",
+      "Space": 4,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 0,
+      "Name": "Lake Koshkonong",
+      "Space": 5,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 0,
+      "Name": "Dickson",
+      "Space": 6,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 1,
+      "Name": "Shawnee Homeland",
+      "Space": 1,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 1,
+      "Name": "Newark",
+      "Space": 2,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 1,
+      "Name": "Serpent Mound",
+      "Space": 3,
+      "IsWilderness": true
+    },
+    {
+      "Warpath": 1,
+      "Name": "Portsmouth",
+      "Space": 4,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 1,
+      "Name": "Fort Ancient",
+      "Space": 5,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 1,
+      "Name": "Angel",
+      "Space": 6,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 2,
+      "Name": "Cherokee Homeland",
+      "Space": 1,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 2,
+      "Name": "Anhaica",
+      "Space": 2,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 2,
+      "Name": "Ocmulgee",
+      "Space": 3,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 2,
+      "Name": "Etowah",
+      "Space": 4,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 2,
+      "Name": "Coosa",
+      "Space": 5,
+      "IsWilderness": true
+    },
+    {
+      "Warpath": 2,
+      "Name": "Pinson",
+      "Space": 6,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 3,
+      "Name": "Natchez Homeland",
+      "Space": 1,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 3,
+      "Name": "Bottle Creek",
+      "Space": 2,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 3,
+      "Name": "Moundville",
+      "Space": 3,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 3,
+      "Name": "Bynum",
+      "Space": 4,
+      "IsWilderness": true
+    },
+    {
+      "Warpath": 3,
+      "Name": "Chucalissa",
+      "Space": 5,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 3,
+      "Name": "Kincaid",
+      "Space": 6,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 4,
+      "Name": "Caddo Homeland",
+      "Space": 1,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 4,
+      "Name": "Harlan",
+      "Space": 2,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 4,
+      "Name": "Spiro",
+      "Space": 3,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 4,
+      "Name": "Marksville",
+      "Space": 4,
+      "IsWilderness": false
+    },
+    {
+      "Warpath": 4,
+      "Name": "Poverty Point",
+      "Space": 5,
+      "IsWilderness": true
+    },
+    {
+      "Warpath": 4,
+      "Name": "Toltec",
+      "Space": 6,
+      "IsWilderness": false
+    }
+  ],
+  "Chiefdoms": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "Hostiles": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "LandIndex": 5,
+      "BattleValue": 4,
+      "IsSpanish": false,
+      "Dice": 0
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "LandIndex": 11,
+      "BattleValue": 3,
+      "IsSpanish": false,
+      "Dice": 0
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "LandIndex": 17,
+      "BattleValue": 2,
+      "IsSpanish": false,
+      "Dice": 0
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "LandIndex": 23,
+      "BattleValue": 2,
+      "IsSpanish": false,
+      "Dice": 0
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ]
+}
