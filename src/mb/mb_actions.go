@@ -33,16 +33,28 @@ const (
 	AttackAction
 	RepairAction
 	PowwowAction
+	QuitAction
+)
+
+type ActionCost int
+
+const (
+	ZeroCost ActionCost = iota
+	OneCost
+	TwoCost 
+	ChiefdomValueCost
+	PalisadeValueCost
 )
 
 var actions = []ActionSpec{
-	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction, WarpathTarget},
-	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction, WarpathTarget},
-	ActionSpec{"mnd", "Build a Mound", BuildAction, LandTarget},
-	ActionSpec{"frt", "Fortify Cahokia", FortifyAction, NoTarget},
-	ActionSpec{"att", "Attack Hostile Army", AttackAction, EnemyTarget},
-	ActionSpec{"rep", "Repair Breach", RepairAction, NoTarget},
-	ActionSpec{"pow", "Powwow", PowwowAction, WarpathTarget},
+	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction, WarpathTarget, OneCost},
+	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction, WarpathTarget, OneCost},
+	ActionSpec{"mnd", "Build a Mound", BuildAction, LandTarget, ChiefdomValueCost},
+	ActionSpec{"frt", "Fortify Cahokia", FortifyAction, NoTarget, TwoCost},
+	ActionSpec{"att", "Attack Hostile Army", AttackAction, EnemyTarget, OneCost},
+	ActionSpec{"rep", "Repair Breach", RepairAction, NoTarget, PalisadeValueCost},
+	ActionSpec{"pow", "Powwow", PowwowAction, WarpathTarget, TwoCost},
+	ActionSpec{"qui", "Quit", QuitAction, NoTarget, ZeroCost},
 }
 
 type ActionSpec struct {
@@ -50,6 +62,7 @@ type ActionSpec struct {
 	Description string
 	Type 		ActionType
 	Target      TargetType
+	Cost 		ActionCost
 }
 
 // finder is a function that finds a unique game object given its prefix.
