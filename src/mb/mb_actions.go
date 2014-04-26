@@ -20,22 +20,35 @@ const (
 	NoTarget TargetType = iota
 	WarpathTarget
 	LandTarget
-	TribeTarget
+	EnemyTarget
+)
+
+type ActionType int
+
+const (
+	PeacePipeAction ActionType = iota
+	IncorporateAction
+	BuildAction
+	FortifyAction
+	AttackAction
+	RepairAction
+	PowwowAction
 )
 
 var actions = []ActionSpec{
-	ActionSpec{"ppa", "Unopposed Peace Pipe advance", WarpathTarget},
-	ActionSpec{"inc", "Incorporate a Chiefdom", WarpathTarget},
-	ActionSpec{"mnd", "Build a Mound", LandTarget},
-	ActionSpec{"frt", "Fortify Cahokia", NoTarget},
-	ActionSpec{"att", "Attack Hostile Army", TribeTarget},
-	ActionSpec{"rep", "Repair Breach", NoTarget},
-	ActionSpec{"pow", "Powwow", WarpathTarget},
+	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction, WarpathTarget},
+	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction, WarpathTarget},
+	ActionSpec{"mnd", "Build a Mound", BuildAction, LandTarget},
+	ActionSpec{"frt", "Fortify Cahokia", FortifyAction, NoTarget},
+	ActionSpec{"att", "Attack Hostile Army", AttackAction, EnemyTarget},
+	ActionSpec{"rep", "Repair Breach", RepairAction, NoTarget},
+	ActionSpec{"pow", "Powwow", PowwowAction, WarpathTarget},
 }
 
 type ActionSpec struct {
 	Name        string
 	Description string
+	Type 		ActionType
 	Target      TargetType
 }
 
@@ -46,7 +59,7 @@ var findFunction = map[TargetType]finder{
 	NoTarget:      findNothing,
 	WarpathTarget: findWarpath,
 	LandTarget:    findLand,
-	TribeTarget:   findTribe,
+	EnemyTarget:   findEnemy,
 }
 
 func (g *Game) parseAction(c string) (*Action, error) {
@@ -85,7 +98,7 @@ func findNothing(string, *Game) (interface{}, error) {
 
 // findWarpath finds one of the five Indian tribes.
 func findWarpath(t string, g *Game) (interface{}, error) {
-	tribe, err := findTribe(t, g)
+	tribe, err := findEnemy(t, g)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +108,7 @@ func findWarpath(t string, g *Game) (interface{}, error) {
 	return tribe, nil
 }
 
-// findLand finds
+// findLand finds a land, given its abbreviation.
 func findLand(t string, g *Game) (interface{}, error) {
 	found := make([]Land, 0)
 	for _, land := range g.Board.Lands {
@@ -112,8 +125,8 @@ func findLand(t string, g *Game) (interface{}, error) {
 	return found[0], nil
 }
 
-// findTribe finds an enemy tribe - this can be the Spanish.
-func findTribe(t string, _ *Game) (interface{}, error) {
+// findEnemy finds an enemy - either a tribe or the Spanish.
+func findEnemy(t string, _ *Game) (interface{}, error) {
 	found := make([]Tribe, 0)
 	for k, v := range tribeNameLookup {
 		if v > SpanishTribe {
