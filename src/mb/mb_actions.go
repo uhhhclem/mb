@@ -6,8 +6,8 @@ import (
 )
 
 type Action struct {
-	Spec   *ActionSpec
-	Target interface{}
+	Spec       *ActionSpec
+	Target     interface{}
 	ActualCost int
 }
 
@@ -38,7 +38,7 @@ type ActionCost int
 const (
 	ZeroCost ActionCost = iota
 	OneCost
-	TwoCost 
+	TwoCost
 	ChiefdomValueCost
 	PalisadeValueCost
 )
@@ -57,9 +57,9 @@ var actions = []ActionSpec{
 type ActionSpec struct {
 	Name        string
 	Description string
-	Type 		state
+	Type        state
 	Target      TargetType
-	Cost 		ActionCost
+	Cost        ActionCost
 }
 
 // finder is a function that finds a unique game object given its prefix.
@@ -157,12 +157,134 @@ func findEnemy(t string, _ *Game) (interface{}, error) {
 	return found[0], nil
 }
 
+// executedAction is called whenever an action is legally performed (even if it didn't)
+// succeed.
+func (g *Game) executedAction() {
+	g.Board.ActionPoints -= g.Action.ActualCost
+}
+
+// findPeacePipeLands finds the Land on a tribe's warpath that currently contains the
+// peace pipe, if any, and the next land to which the peace pipe can be moved,
+// if any.
+func (g *Game) findPeacePipeLands(t Tribe) (Land, Land) {
+	var oldLand, newLand Land
+	for i := 1; i < 6; i++ {
+		idx := toLandIndex(t, i)
+		if g.Board.PeacePipes[idx] {
+			oldLand = g.Board.Lands[idx]
+			break
+		}
+	}
+
+	if (oldLand == Land{}) {
+		newLand = g.Board.Lands[toLandIndex(t, 1)]
+	} else {
+		if oldLand.Space < 5 {
+			newLand = g.Board.Lands[oldLand.Index+1]
+		}
+	}
+
+	return oldLand, newLand
+}
+
+// advancePeacePipe advances a PeacePipe from an old to a new land, drawing a new
+// chiefdom counter if the next land out isn't wilderness.
+func (g *Game) advancePeacePipe(oldLand, newLand Land) {
+	if (oldLand == Land{}) {
+		g.logEvent("Placed new Peace Pipe on %s.", newLand)
+	} else {
+		g.logEvent("Advanced Peace Pipe from %s to %s.", oldLand, newLand)
+		g.Board.PeacePipes[oldLand.Index] = false
+	}
+	g.Board.PeacePipes[newLand.Index] = true
+
+	// discovery only happens during the Hopewell era
+	if g.Board.CurrentEra != Hopewell {
+		return
+	}
+	if newLand.Space >= 5 {
+		return
+	}
+	newLand = g.Board.Lands[newLand.Index+1]
+	if !newLand.IsWilderness {
+		g.drawChiefdomCounter(newLand)
+		g.logEvent("Placed new chiefdom (%s) in %s.", g.Board.Chiefdoms[newLand.Index], newLand)
+	}
+}
 
 func (PeacePipeAction) handle(g *Game) state {
+	if g.Board.CurrentEra != Hopewell {
+		g.Error = fmt.Errorf("This action is only allowed during the Hopewell era.")
+		return stateGetNextAction{}
+	}
+
+	t := g.Action.Target.(Tribe)
+	oldLand, newLand := g.findPeacePipeLands(t)
+
+	switch {
+	case newLand == Land{}:
+		g.Error = fmt.Errorf("Peace Pipe on %s cannot be advanced.", oldLand)
+	case newLand.IsWilderness:
+		g.advancePeacePipe(oldLand, newLand)
+		g.executedAction()
+	case g.Board.Chiefdoms[newLand.Index].IsMounded:
+		g.advancePeacePipe(oldLand, newLand)
+		g.executedAction()
+	default:
+		g.Error = fmt.Errorf("Cannot advance Peace Pipe; chiefdom in %s must be incorporated first.", newLand)
+	}
 	return stateGetNextAction{}
 }
 
-func(IncorporateAction) handle(g *Game) state {
+func (IncorporateAction) handle(g *Game) state {
+	if g.Board.CurrentEra != Hopewell {
+		g.Error = fmt.Errorf("This action is only allowed during the Hopewell era.")
+		return stateGetNextAction{}
+	}
+
+	t := g.Action.Target.(Tribe)
+	oldLand, newLand := g.findPeacePipeLands(t)
+
+	switch {
+	case newLand == Land{}:
+		g.Error = fmt.Errorf("Cannot advance Peace Pipe beyond %s.", oldLand)
+	case newLand.IsWilderness:
+		g.Error = fmt.Errorf("%s cannot contain a chiefdom.", newLand)
+	case g.Board.Chiefdoms[newLand.Index] == nil:
+		g.Error = fmt.Errorf("%s does not contain a chiefdom.", newLand)
+	default:
+		var r int
+		if (oldLand != Land{}) {
+			r1, r2 := die(), die()
+			r = r2
+			if r1 > r2 {
+				r = r1
+			}
+			g.logEvent("Busk roll on %s warpath: %d and %d, choosing %d.", t, r1, r2, r)
+		} else {
+			r = die()
+			g.logEvent("Diplomacy roll on %s warpath : %d.", t, r)
+		}
+		oldChiefdom := g.Board.Chiefdoms[newLand.Index]
+		v := oldChiefdom.getValue()
+		if g.Board.WarpathStatus.Warpath == t {
+			g.logEvent("%s status modifies chiefdom's value of %d.", g.Board.WarpathStatus, v)
+			v += g.Board.WarpathStatus.Modifier
+		}
+		if r > v {
+			g.logEvent("%d exceeded value of %d; incorporation succeeded.", r, v)
+			oldChiefdom.IsControlled = true
+			g.Board.PeacePipes[newLand.Index] = true
+			if (oldLand != Land{}) {
+				g.Board.PeacePipes[oldLand.Index] = false
+			}
+			g.advancePeacePipe(oldLand, newLand)
+		} else {
+			g.logEvent("%d didn't exceed value of %d; incorporation failed.", r, v)
+		}
+		g.executedAction()
+	}
+
 	return stateGetNextAction{}
 }
 
@@ -181,13 +303,13 @@ func (AttackAction) handle(g *Game) state {
 func (RepairAction) handle(g *Game) state {
 	return stateGetNextAction{}
 }
-	
+
 func (PowwowAction) handle(g *Game) state {
 	return stateGetNextAction{}
 }
 
 func (QuitAction) handle(g *Game) state {
-	g.respond("Do you really want to quit (Y/N)?",  nil)
+	g.respond("Do you really want to quit (Y/N)?", nil)
 	return stateVerifyQuitGame(0)
 }
 

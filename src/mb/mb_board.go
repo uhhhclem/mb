@@ -104,7 +104,7 @@ func makeBoard() Board {
 		Lands:      make([]Land, LandCount),
 		Chiefdoms:  make([]*Chiefdom, LandCount),
 		Hostiles:   make([]*HostileMarker, LandCount),
-		PeacePipes: make([]*PeacePipeMarker, LandCount),
+		PeacePipes: make([]bool, LandCount),
 	}
 	for i, r := range parse(boardData) {
 		if i == 0 {
@@ -117,8 +117,8 @@ func makeBoard() Board {
 			Space:        6 - ((i - 1) % 6),
 			IsWilderness: r[colIsWilderness] == "TRUE",
 		}
-		idx := toLandIndex(l.Warpath, l.Space)
-		board.Lands[idx] = l
+		l.Index = toLandIndex(l.Warpath, l.Space)
+		board.Lands[l.Index] = l
 	}
 
 	// position the hostiles

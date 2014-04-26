@@ -19,18 +19,28 @@ func die() int {
 	return rng.Intn(6) + 1
 }
 
+func normalizeDie(d int) int {
+	if d < 1 {
+		return 1
+	}
+	if d > 6 {
+		return 6
+	}
+	return d
+}
+
 type Game struct {
-	Board       Board
-	HistoryDeck Pile
-	Cup         Cup
-	State       state
-	Request		Request
-	Response	*Response
-	ResponseReady bool
+	Board           Board
+	HistoryDeck     Pile
+	Cup             Cup
+	State           state
+	Request         Request
+	Response        *Response
+	ResponseReady   bool
 	AdvancingArmies []Tribe
-	RevoltingTribe Tribe
-	Action *Action
-	Error error
+	RevoltingTribe  Tribe
+	Action          *Action
+	Error           error
 }
 
 type Request struct {
@@ -39,7 +49,7 @@ type Request struct {
 
 type Response struct {
 	Prompt Prompt
-	Error error
+	Error  error
 }
 
 // NewGame initializes a new Game.
@@ -75,11 +85,15 @@ func (g *Game) HandleRequest(q Request) {
 	}
 }
 
-// drawChiefdomCounter draws the next ChiefdomCounter from the cup.
-func (g *Game) drawChiefdomCounter() *ChiefdomCounter {
+// drawChiefdomCounter draws the next ChiefdomCounter from the cup and positions it
+// in the given Land.
+func (g *Game) drawChiefdomCounter(l Land) {
 	var c *ChiefdomCounter
 	c, g.Cup = drawFromCup(g.Cup)
-	return c
+	g.Board.Chiefdoms[l.Index] = &Chiefdom{
+		Counter:   c,
+		LandIndex: l.Index,
+	}
 }
 
 // drawHistoryCard draws the next HistoryCard from the deck.  If Board.Card is nil, game over.
@@ -90,7 +104,7 @@ func (g *Game) drawHistoryCard() {
 }
 
 func (*Game) logPhase(f string, args ...interface{}) {
-	fmt.Printf("\n\n"+f, args...)	
+	fmt.Printf("\n\n"+f, args...)
 }
 
 func (*Game) logEvent(f string, args ...interface{}) {
@@ -193,7 +207,7 @@ func (stateHostilesPhase) handle(g *Game) state {
 			drm = -1
 		}
 	}
-	g.Board.WarpathStatus = WarpathStatus{Warpath: g.Board.Card.Modifier, DRM: drm}
+	g.Board.WarpathStatus = WarpathStatus{Warpath: g.Board.Card.Modifier, Modifier: drm}
 	g.logEvent("Warpath status is %s", g.Board.WarpathStatus)
 
 	g.AdvancingArmies = make([]Tribe, len(c.AdvancingArmies))
@@ -201,12 +215,12 @@ func (stateHostilesPhase) handle(g *Game) state {
 	g.RevoltingTribe = c.Revolt
 
 	return stateAdvanceHostile{}
-	
+
 }
 
 type stateAdvanceHostile struct{}
 
-func(stateAdvanceHostile) handle(g *Game) state {
+func (stateAdvanceHostile) handle(g *Game) state {
 	if len(g.AdvancingArmies) == 0 {
 		g.logEvent("No advancing armies.")
 		return stateRevoltPhase{}
@@ -220,7 +234,7 @@ func(stateAdvanceHostile) handle(g *Game) state {
 
 type stateRevoltPhase struct{}
 
-func(stateRevoltPhase) handle(g *Game) (s state) {
+func (stateRevoltPhase) handle(g *Game) (s state) {
 	s = stateActionPhase{}
 	tribe := g.RevoltingTribe
 	if tribe == None {
@@ -262,25 +276,26 @@ func(stateRevoltPhase) handle(g *Game) (s state) {
 
 type stateActionPhase struct{}
 
-func(stateActionPhase) handle(g *Game) state {
+func (stateActionPhase) handle(g *Game) state {
 	g.logPhase("Action Phase:")
 	return stateGetNextAction{}
 }
 
 type stateGetNextAction struct{}
 
-func(stateGetNextAction) handle(g *Game) state {
+func (stateGetNextAction) handle(g *Game) state {
 	if g.Board.ActionPoints < 1 {
-		return stateTest{}
+		return stateEndOfTurnPhase{}
 	}
 	// the previous state can override this prompt by setting g.Response
-	g.respond("Enter action", g.Error)
+	msg := fmt.Sprintf("[%d APs] Enter action", g.Board.ActionPoints)
+	g.respond(msg, g.Error)
 	return stateProcessAction{}
 }
 
 type stateProcessAction struct{}
 
-func(stateProcessAction) handle(g *Game) state {
+func (stateProcessAction) handle(g *Game) state {
 	var err error
 	g.Action, err = g.parseAction(string(g.Request.Input))
 	if err == nil {
@@ -290,9 +305,6 @@ func(stateProcessAction) handle(g *Game) state {
 		g.Error = err
 		return stateGetNextAction{}
 	}
-	g.Board.ActionPoints = g.Board.ActionPoints - g.Action.ActualCost
-	g.logEvent("Got action %q, %d APs remaining.", g.Action, g.Board.ActionPoints)
-
 	return g.Action.Spec.Type
 }
 
@@ -311,12 +323,23 @@ func (g *Game) prepareAction() error {
 		cost = g.Board.palisade().Value
 	}
 	if avail := g.Board.ActionPoints; cost > avail {
-		return fmt.Errorf("This action costs %dAPs, but you only have %d.", cost, avail)
+		return fmt.Errorf("This action costs %d APs, but you only have %d.", cost, avail)
 	}
 	a.ActualCost = cost
 	return nil
 }
 
+type stateEndOfTurnPhase struct{}
+
+func (stateEndOfTurnPhase) handle(g *Game) state {
+	g.logPhase("End of Turn Phase:")
+	// remove markers
+	// remove enemy-held chiefdoms
+	// degrade chiefdoms
+	// reset trade goods marker
+	// deploy great sun
+	return stateStartOfTurn{}
+}
 
 type stateTest struct{}
 
@@ -338,11 +361,16 @@ func (stateStartOfGame) handle(g *Game) state {
 	g.logPhase("Setup:")
 
 	for t := HoChunk; t <= Caddo; t++ {
-		c := g.drawChiefdomCounter()
-		i := toLandIndex(t, 1)
-		g.Board.Chiefdoms[i] = &Chiefdom{Counter: *c}
-		g.logEvent("Land %s: %s", g.Board.Lands[i], g.Board.Chiefdoms[i])
+		land := g.Board.Lands[toLandIndex(t, 1)]
+		g.drawChiefdomCounter(land)
+		g.logEvent("Land %s: %s", land, g.Board.Chiefdoms[land.Index])
 	}
 
+	return stateStartOfTurn{}
+}
+
+type stateStartOfTurn struct{}
+
+func (stateStartOfTurn) handle(g *Game) state {
 	return stateHistoryPhase{}
 }

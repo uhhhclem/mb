@@ -44,6 +44,7 @@ type Land struct {
 	Warpath      Tribe
 	Name         string
 	Space        int
+    Index 		 int
 	IsWilderness bool
 	IsControlled bool
 }
@@ -54,11 +55,11 @@ func (l Land) String() string {
 
 type WarpathStatus struct {
 	Warpath Tribe
-	DRM     int
+	Modifier     int
 }
 
 func (w WarpathStatus) String() string {
-	switch w.DRM {
+	switch w.Modifier {
 	case 1:
 		return w.Warpath.String() + " + 1"
 	case -1:
@@ -120,7 +121,7 @@ type ChiefdomCounterFace struct {
 
 // Chiefdom represents a chiefdom on the board.
 type Chiefdom struct {
-	Counter      ChiefdomCounter
+	Counter      *ChiefdomCounter
 	IsMounded    bool
 	IsControlled bool
 	LandIndex    int // index into Board.Lands
@@ -146,12 +147,13 @@ func (c Chiefdom) getCounterFace() ChiefdomCounterFace {
 	return c.Counter.Plain
 }
 
+func (c Chiefdom) getValue() int {
+	return c.getCounterFace().Value
+}
+
 func (c Chiefdom) IsGreenBirdman() bool {
 	return c.getCounterFace().IsGreenBird
 }
-
-// PeacePipeMarker represents a Peace Pipe.
-type PeacePipeMarker struct{}
 
 // HostileMarker represents one of the six hostile markers (including the Spanish)
 type HostileMarker struct {
@@ -198,7 +200,7 @@ type Board struct {
 	Lands         []Land
 	Chiefdoms     []*Chiefdom
 	Hostiles      []*HostileMarker
-	PeacePipes    []*PeacePipeMarker
+	PeacePipes    []bool
 	WarpathStatus WarpathStatus
 }
 
