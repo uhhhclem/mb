@@ -93,6 +93,11 @@ func (b *Board) moveHostile(h *HostileMarker, dir int) {
 	b.Hostiles[h.LandIndex] = h
 }
 
+// palisade is a helper function to get the current Palisade.
+func (b *Board) palisade() Palisade {
+	return b.Palisades[b.PalisadeIndex]
+}
+
 // makeBoard makes a new game board.
 func makeBoard() Board {
 	board := Board{

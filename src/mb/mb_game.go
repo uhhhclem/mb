@@ -3,6 +3,7 @@ package mb
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -29,6 +30,7 @@ type Game struct {
 	ResponseReady bool
 	AdvancingArmies []Tribe
 	RevoltingTribe Tribe
+	Error error
 }
 
 type Request struct {
@@ -58,6 +60,7 @@ func (g *Game) StartGame() {
 func (g *Game) HandleRequest(q Request) {
 	g.Request = q
 	g.Response = nil
+	g.Error = nil
 	for {
 		switch g.State.(type) {
 		case stateEndProgram:
@@ -92,6 +95,10 @@ func (*Game) logPhase(f string, args ...interface{}) {
 
 func (*Game) logEvent(f string, args ...interface{}) {
 	fmt.Printf("\n  "+f, args...)
+}
+
+func (g *Game) respond(p string, err error) {
+	g.Response = &Response{Prompt: Prompt(p), Error: err}
 }
 
 type state interface {
@@ -266,24 +273,65 @@ func(stateGetNextAction) handle(g *Game) state {
 	if g.Board.ActionPoints < 1 {
 		return stateTest{}
 	}
-	g.Response = &Response{Prompt: "Enter action"}
+	// the previous state can override this prompt by setting g.Response
+	g.respond("Enter action", g.Error)
 	return stateProcessAction{}
 }
 
 type stateProcessAction struct{}
 
 func(stateProcessAction) handle(g *Game) state {
-	g.logEvent("Parsing %s", g.Request.Input)
 	action, err := g.parseAction(string(g.Request.Input))
+	if err == nil {
+		err = g.prepareAction(action)
+	}
 	if err != nil {
-		g.Response = &Response{
-			Prompt: "Enter action",
-			Error: err,
-		}
+		g.Error = err
 		return stateGetNextAction{}
 	}
-	g.logEvent("Got action %s", action)
-	g.Board.ActionPoints = g.Board.ActionPoints - 1
+	g.Board.ActionPoints = g.Board.ActionPoints - action.ActualCost
+	g.logEvent("Got action %q, %d APs remaining.", action, g.Board.ActionPoints)
+
+	switch action.Spec.Type {
+	case QuitAction:
+		return stateQuitGameAction{}
+	}
+	return stateGetNextAction{}
+}
+
+// prepareAction updates the Action with values that the action logic will need.
+// It returns an error if the action is invalid for any reason.
+func (g *Game) prepareAction(a *Action) error {
+	// can we afford the action?
+	var cost int
+	switch a.Spec.Cost {
+	case ZeroCost, OneCost, TwoCost:
+		cost = int(a.Spec.Cost)
+	case ChiefdomValueCost:
+		// TODO
+	case PalisadeValueCost:
+		cost = g.Board.palisade().Value
+	}
+	if avail := g.Board.ActionPoints; cost > avail {
+		return fmt.Errorf("This action costs %dAPs, but you only have %d.", cost, avail)
+	}
+	a.ActualCost = cost
+	return nil
+}
+
+type stateQuitGameAction struct{}
+
+func (stateQuitGameAction) handle(g *Game) state {
+	g.respond("Do you really want to quit (Y/N)?",  nil)
+	return stateVerifyQuitGame{}
+}
+
+type stateVerifyQuitGame struct{}
+
+func (stateVerifyQuitGame) handle(g *Game) state {
+	if strings.ToLower(string(g.Request.Input)) == "y" {
+		return stateEndOfGame{}
+	}
 	return stateGetNextAction{}
 }
 

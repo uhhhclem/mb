@@ -8,6 +8,7 @@ import (
 type Action struct {
 	Spec   *ActionSpec
 	Target interface{}
+	ActualCost int
 }
 
 func (a Action) String() string {
