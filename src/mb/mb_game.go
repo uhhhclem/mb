@@ -3,7 +3,6 @@ package mb
 import (
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 )
 
@@ -30,6 +29,7 @@ type Game struct {
 	ResponseReady bool
 	AdvancingArmies []Tribe
 	RevoltingTribe Tribe
+	Action *Action
 	Error error
 }
 
@@ -281,27 +281,25 @@ func(stateGetNextAction) handle(g *Game) state {
 type stateProcessAction struct{}
 
 func(stateProcessAction) handle(g *Game) state {
-	action, err := g.parseAction(string(g.Request.Input))
+	var err error
+	g.Action, err = g.parseAction(string(g.Request.Input))
 	if err == nil {
-		err = g.prepareAction(action)
+		err = g.prepareAction()
 	}
 	if err != nil {
 		g.Error = err
 		return stateGetNextAction{}
 	}
-	g.Board.ActionPoints = g.Board.ActionPoints - action.ActualCost
-	g.logEvent("Got action %q, %d APs remaining.", action, g.Board.ActionPoints)
+	g.Board.ActionPoints = g.Board.ActionPoints - g.Action.ActualCost
+	g.logEvent("Got action %q, %d APs remaining.", g.Action, g.Board.ActionPoints)
 
-	switch action.Spec.Type {
-	case QuitAction:
-		return stateQuitGameAction{}
-	}
-	return stateGetNextAction{}
+	return g.Action.Spec.Type
 }
 
 // prepareAction updates the Action with values that the action logic will need.
 // It returns an error if the action is invalid for any reason.
-func (g *Game) prepareAction(a *Action) error {
+func (g *Game) prepareAction() error {
+	a := g.Action
 	// can we afford the action?
 	var cost int
 	switch a.Spec.Cost {
@@ -319,21 +317,6 @@ func (g *Game) prepareAction(a *Action) error {
 	return nil
 }
 
-type stateQuitGameAction struct{}
-
-func (stateQuitGameAction) handle(g *Game) state {
-	g.respond("Do you really want to quit (Y/N)?",  nil)
-	return stateVerifyQuitGame{}
-}
-
-type stateVerifyQuitGame struct{}
-
-func (stateVerifyQuitGame) handle(g *Game) state {
-	if strings.ToLower(string(g.Request.Input)) == "y" {
-		return stateEndOfGame{}
-	}
-	return stateGetNextAction{}
-}
 
 type stateTest struct{}
 

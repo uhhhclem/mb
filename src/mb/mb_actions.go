@@ -24,18 +24,14 @@ const (
 	EnemyTarget
 )
 
-type ActionType int
-
-const (
-	PeacePipeAction ActionType = iota
-	IncorporateAction
-	BuildAction
-	FortifyAction
-	AttackAction
-	RepairAction
-	PowwowAction
-	QuitAction
-)
+type PeacePipeAction int
+type IncorporateAction int
+type BuildAction int
+type FortifyAction int
+type AttackAction int
+type RepairAction int
+type PowwowAction int
+type QuitAction int
 
 type ActionCost int
 
@@ -48,20 +44,20 @@ const (
 )
 
 var actions = []ActionSpec{
-	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction, WarpathTarget, OneCost},
-	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction, WarpathTarget, OneCost},
-	ActionSpec{"mnd", "Build a Mound", BuildAction, LandTarget, ChiefdomValueCost},
-	ActionSpec{"frt", "Fortify Cahokia", FortifyAction, NoTarget, TwoCost},
-	ActionSpec{"att", "Attack Hostile Army", AttackAction, EnemyTarget, OneCost},
-	ActionSpec{"rep", "Repair Breach", RepairAction, NoTarget, PalisadeValueCost},
-	ActionSpec{"pow", "Powwow", PowwowAction, WarpathTarget, TwoCost},
-	ActionSpec{"qui", "Quit", QuitAction, NoTarget, ZeroCost},
+	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction(0), WarpathTarget, OneCost},
+	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction(0), WarpathTarget, OneCost},
+	ActionSpec{"mnd", "Build a Mound", BuildAction(0), LandTarget, ChiefdomValueCost},
+	ActionSpec{"frt", "Fortify Cahokia", FortifyAction(0), NoTarget, TwoCost},
+	ActionSpec{"att", "Attack Hostile Army", AttackAction(0), EnemyTarget, OneCost},
+	ActionSpec{"rep", "Repair Breach", RepairAction(0), NoTarget, PalisadeValueCost},
+	ActionSpec{"pow", "Powwow", PowwowAction(0), WarpathTarget, TwoCost},
+	ActionSpec{"qui", "Quit", QuitAction(0), NoTarget, ZeroCost},
 }
 
 type ActionSpec struct {
 	Name        string
 	Description string
-	Type 		ActionType
+	Type 		state
 	Target      TargetType
 	Cost 		ActionCost
 }
@@ -159,4 +155,47 @@ func findEnemy(t string, _ *Game) (interface{}, error) {
 		return nil, fmt.Errorf("%q doesn't match an enemy.")
 	}
 	return found[0], nil
+}
+
+
+func (PeacePipeAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func(IncorporateAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func (BuildAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func (FortifyAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func (AttackAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func (RepairAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+	
+func (PowwowAction) handle(g *Game) state {
+	return stateGetNextAction{}
+}
+
+func (QuitAction) handle(g *Game) state {
+	g.respond("Do you really want to quit (Y/N)?",  nil)
+	return stateVerifyQuitGame(0)
+}
+
+type stateVerifyQuitGame int
+
+func (stateVerifyQuitGame) handle(g *Game) state {
+	if strings.ToLower(string(g.Request.Input)) == "y" {
+		return stateEndOfGame{}
+	}
+	return stateGetNextAction{}
 }
