@@ -119,7 +119,8 @@ func (g *Game) log(f string, args ...interface{}) {
 	if g.LogToConsole {
 		fmt.Print(s)
 	}
-	g.Log = append(g.Log, strings.Split(s, "\n")...)
+	lines := strings.Split(s, "\n")
+	g.Log = append(g.Log, lines...)
 }
 
 func (g *Game) respond(p string, err error) {
