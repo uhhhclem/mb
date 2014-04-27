@@ -3,6 +3,7 @@ package mb
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -41,6 +42,8 @@ type Game struct {
 	RevoltingTribe  Tribe
 	Action          *Action
 	Error           error
+	LogToConsole    bool
+	Log 			[]string
 }
 
 type Request struct {
@@ -103,12 +106,20 @@ func (g *Game) drawHistoryCard() {
 	g.Board.Card = c
 }
 
-func (*Game) logPhase(f string, args ...interface{}) {
-	fmt.Printf("\n\n"+f, args...)
+func (g *Game) logPhase(f string, args ...interface{}) {
+	g.log("\n\n"+f, args...)
 }
 
-func (*Game) logEvent(f string, args ...interface{}) {
-	fmt.Printf("\n  "+f, args...)
+func (g *Game) logEvent(f string, args ...interface{}) {
+	g.log("\n  "+f, args...)
+}
+
+func (g *Game) log(f string, args ...interface{}) {
+	s := fmt.Sprintf(f, args...)
+	if g.LogToConsole {
+		fmt.Print(s)
+	}
+	g.Log = append(g.Log, strings.Split(s, "\n")...)
 }
 
 func (g *Game) respond(p string, err error) {

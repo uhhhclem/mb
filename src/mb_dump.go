@@ -12,6 +12,7 @@ import (
 
 func main() {
 	g := mb.NewGame()
+	g.LogToConsole = true
 	g.StartGame()
 	for g.Response != nil {
 		g.Request.Input = ""
