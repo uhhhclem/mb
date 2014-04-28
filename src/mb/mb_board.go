@@ -4,7 +4,7 @@ var boardData = `Tribe,Name,IsWilderness
 HoChunk,Ho-Chunk Homeland,
 HoChunk,Red Wing,TRUE
 HoChunk,Lizard Mound,
-HoChunk,Adtalan,
+HoChunk,Aztalan,
 HoChunk,Lake Koshkonong,
 HoChunk,Dickson,
 Shawnee,Shawnee Homeland,
