@@ -264,7 +264,8 @@ func (stateRevoltPhase) handle(g *Game) (s state) {
 		g.logEvent("No revolt in tribal homeland.")
 		return
 	}
-	if !land.IsControlled {
+	c := g.Board.findChiefdom(tribe, roll)
+	if c == nil || !c.IsControlled {
 		if g.Board.CurrentEra == Hopewell {
 			g.logEvent("Land is uncontrolled; revolt has no effect.")
 			return
@@ -273,7 +274,6 @@ func (stateRevoltPhase) handle(g *Game) (s state) {
 		// TODO:  implement retreat; must also handle Spanish.
 		return
 	}
-	c := g.Board.findChiefdom(tribe, roll)
 	if c != nil && c.IsGreenBirdman() {
 		g.logEvent("Green Birdman people love you and do not revolt.")
 		return

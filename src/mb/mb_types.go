@@ -46,7 +46,6 @@ type Land struct {
 	Space        int
     Index 		 int
 	IsWilderness bool
-	IsControlled bool
 }
 
 func (l Land) String() string {
