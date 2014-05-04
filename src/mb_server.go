@@ -15,7 +15,10 @@ import (
 var g *mb.Game
 
 func appHandler(w http.ResponseWriter, r *http.Request) {
-	filename := r.URL.Path[len("/app/"):]
+	filename := r.URL.Path
+	if filename == "/" {
+		filename = "index.html"
+	}
 	filename = strings.ToLower("../client/app/" + filename)
 	if strings.HasSuffix(filename, ".js") {
 		w.Header()["Content-Type"] = []string{"application/javascript"}
@@ -83,8 +86,7 @@ func main() {
 	g = mb.NewGame()
 	g.StartGame()
 	
-
-    http.HandleFunc("/app/", appHandler)
+    http.HandleFunc("/", appHandler)
     http.HandleFunc("/mb/board/", mbBoardHandler)
     http.HandleFunc("/mb/log/", mbLogHandler)
     http.ListenAndServe(":8080", nil)

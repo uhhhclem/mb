@@ -362,9 +362,6 @@ func (IncorporateAction) perform(g *Game, t Tribe, mutate bool) (state, error) {
 
 func (a IncorporateAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
 	_, err := a.perform(g, t, false)
-	if err != nil {
-		fmt.Println(err)
-	}
 	return err == nil
 }
 
