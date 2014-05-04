@@ -27,6 +27,8 @@ const (
 	CaddoOrShawnee // only for HistoryCard 37
 )
 
+var tribes = []Tribe{HoChunk, Shawnee, Cherokee, Natchez, Caddo}
+
 var tribeNameLookup = map[string]Tribe{
 	"HoChunk":        HoChunk,
 	"Shawnee":        Shawnee,
@@ -201,6 +203,7 @@ type Board struct {
 	Hostiles      []*HostileMarker
 	PeacePipes    []bool
 	WarpathStatus WarpathStatus
+	WarpathActions map[string][]FrontEndAction
 }
 
 type HistoryCard struct {

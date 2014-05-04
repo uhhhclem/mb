@@ -1,6 +1,7 @@
 package mb
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -24,6 +25,8 @@ const (
 	EnemyTarget
 )
 
+// Actions implement mb.state. Actions that can be taken on a warpath
+// implement mb.warpathAction.
 type PeacePipeAction int
 type IncorporateAction int
 type BuildAction int
@@ -32,6 +35,10 @@ type AttackAction int
 type RepairAction int
 type PowwowAction int
 type QuitAction int
+
+type warpathAction interface {
+	isEnabledOnWarpath(g *Game, t Tribe) bool
+}
 
 type ActionCost int
 
@@ -44,22 +51,52 @@ const (
 )
 
 var actions = []ActionSpec{
-	ActionSpec{"ppa", "Unopposed Peace Pipe advance", PeacePipeAction(0), WarpathTarget, OneCost},
-	ActionSpec{"inc", "Incorporate a Chiefdom", IncorporateAction(0), WarpathTarget, OneCost},
-	ActionSpec{"mnd", "Build a Mound", BuildAction(0), LandTarget, ChiefdomValueCost},
-	ActionSpec{"frt", "Fortify Cahokia", FortifyAction(0), NoTarget, TwoCost},
-	ActionSpec{"att", "Attack Hostile Army", AttackAction(0), EnemyTarget, OneCost},
-	ActionSpec{"rep", "Repair Breach", RepairAction(0), NoTarget, PalisadeValueCost},
-	ActionSpec{"pow", "Powwow", PowwowAction(0), WarpathTarget, TwoCost},
-	ActionSpec{"qui", "Quit", QuitAction(0), NoTarget, ZeroCost},
+	ActionSpec{"ppa", "Peace Pipe", "Unopposed Peace Pipe advance", PeacePipeAction(0), WarpathTarget, OneCost},
+	ActionSpec{"inc", "Incorporate", "Incorporate a Chiefdom", IncorporateAction(0), WarpathTarget, OneCost},
+	ActionSpec{"mnd", "Build", "Build a Mound", BuildAction(0), LandTarget, ChiefdomValueCost},
+	ActionSpec{"frt", "Fortify", "Fortify Cahokia", FortifyAction(0), NoTarget, TwoCost},
+	ActionSpec{"att", "Attack", "Attack Hostile Army", AttackAction(0), EnemyTarget, OneCost},
+	ActionSpec{"rep", "Repair", "Repair Breach", RepairAction(0), NoTarget, PalisadeValueCost},
+	ActionSpec{"pow", "Powwow", "Powwow", PowwowAction(0), WarpathTarget, TwoCost},
+	ActionSpec{"qui", "Quit", "Quit the Game", QuitAction(0), NoTarget, ZeroCost},
 }
 
 type ActionSpec struct {
 	Name        string
+	Abbr 		string
 	Description string
 	Type        state
 	Target      TargetType
 	Cost        ActionCost
+}
+
+type FrontEndAction struct {
+	ActionSpec
+	IsAvailable bool
+	ActualCost int
+}
+
+func (g *Game) availableWarpathActions() map[string][]FrontEndAction {
+	result := make(map[string][]FrontEndAction)
+	for _, t := range tribes {
+		for _, s := range actions {
+			if at, ok := s.Type.(warpathAction); ok {
+					f := FrontEndAction{s, at.isEnabledOnWarpath(g, t), 0}
+					switch s.Cost {
+					case ChiefdomValueCost:
+						// TODO
+						f.ActualCost = 99
+					case PalisadeValueCost:
+						// TODO
+						f.ActualCost = 99
+					default:
+						f.ActualCost = int(s.Cost)						
+					}
+					result[tribeNames[t]] = append(result[tribeNames[t]], f)
+				}
+			}
+		}
+	return result
 }
 
 // finder is a function that finds a unique game object given its prefix.
@@ -212,46 +249,81 @@ func (g *Game) advancePeacePipe(oldLand, newLand Land) {
 	}
 }
 
-func (PeacePipeAction) handle(g *Game) state {
-	if g.Board.CurrentEra != Hopewell {
-		g.Error = fmt.Errorf("This action is only allowed during the Hopewell era.")
-		return stateGetNextAction{}
-	}
-
+func (a PeacePipeAction) handle(g *Game) state {
 	t := g.Action.Target.(Tribe)
-	oldLand, newLand := g.findPeacePipeLands(t)
-
-	switch {
-	case newLand == Land{}:
-		g.Error = fmt.Errorf("Peace Pipe on %s cannot be advanced.", oldLand)
-	case newLand.IsWilderness:
-		g.advancePeacePipe(oldLand, newLand)
-		g.executedAction()
-	case g.Board.Chiefdoms[newLand.Index].IsMounded:
-		g.advancePeacePipe(oldLand, newLand)
-		g.executedAction()
-	default:
-		g.Error = fmt.Errorf("Cannot advance Peace Pipe; chiefdom in %s must be incorporated first.", newLand)
+	s, err := a.perform(g, t, true)
+	if err != nil {
+		g.Error = err
 	}
-	return stateGetNextAction{}
+	return s
 }
 
-func (IncorporateAction) handle(g *Game) state {
+func (a PeacePipeAction) perform(g *Game, t Tribe, mutate bool) (state, error) {
+	var err error
+
 	if g.Board.CurrentEra != Hopewell {
-		g.Error = fmt.Errorf("This action is only allowed during the Hopewell era.")
-		return stateGetNextAction{}
+		err = fmt.Errorf("This action is only allowed during the Hopewell era.")
+		return stateGetNextAction{}, err
 	}
 
-	t := g.Action.Target.(Tribe)
 	oldLand, newLand := g.findPeacePipeLands(t)
 
 	switch {
+	case g.Board.ActionPoints < 1:
+		err = errors.New("Not enough APs remaining; 1 required.")
 	case newLand == Land{}:
-		g.Error = fmt.Errorf("Cannot advance Peace Pipe beyond %s.", oldLand)
+		err = fmt.Errorf("Peace Pipe on %s cannot be advanced.", oldLand)
 	case newLand.IsWilderness:
-		g.Error = fmt.Errorf("%s cannot contain a chiefdom.", newLand)
+		if mutate {
+				g.advancePeacePipe(oldLand, newLand)
+				g.executedAction()
+		}
+	case g.Board.Chiefdoms[newLand.Index].IsMounded:
+		if mutate {
+				g.advancePeacePipe(oldLand, newLand)
+				g.executedAction()
+		}
+	default:
+		err = fmt.Errorf("Cannot advance Peace Pipe; chiefdom in %s must be incorporated first.", newLand)
+	}
+	return stateGetNextAction{}, err
+}
+
+func (a PeacePipeAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
+	_, err := a.perform(g, t, false)
+	return err == nil
+}
+
+func (a IncorporateAction) handle(g *Game) state {
+	t := g.Action.Target.(Tribe)
+	s, err := a.perform(g, t, true)
+	if err != nil {
+		g.Error = err
+	}
+	return s
+}
+
+func (IncorporateAction) perform(g *Game, t Tribe, mutate bool) (state, error) {
+	var err error
+
+	if g.Board.CurrentEra != Hopewell {
+		err = fmt.Errorf("This action is only allowed during the Hopewell era.")
+		return stateGetNextAction{}, err
+	}
+
+	oldLand, newLand := g.findPeacePipeLands(t)
+
+	switch {
+	case g.Board.ActionPoints < 1:
+		err = errors.New("Not enough APs remaining; 1 required.")
+	case newLand == Land{}:
+		err = fmt.Errorf("Cannot advance Peace Pipe beyond %s.", oldLand)
+	case newLand.IsWilderness:
+		err = fmt.Errorf("%s cannot contain a chiefdom.", newLand)
 	case g.Board.Chiefdoms[newLand.Index] == nil:
-		g.Error = fmt.Errorf("%s does not contain a chiefdom.", newLand)
+		err = fmt.Errorf("%s does not contain a chiefdom.", newLand)
+	case !mutate:
+		break
 	default:
 		var r int
 		if (oldLand != Land{}) {
@@ -285,11 +357,23 @@ func (IncorporateAction) handle(g *Game) state {
 		g.executedAction()
 	}
 
-	return stateGetNextAction{}
+	return stateGetNextAction{}, err
+}
+
+func (a IncorporateAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
+	_, err := a.perform(g, t, false)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err == nil
 }
 
 func (BuildAction) handle(g *Game) state {
 	return stateGetNextAction{}
+}
+
+func (BuildAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
+	return false
 }
 
 func (FortifyAction) handle(g *Game) state {
@@ -300,6 +384,10 @@ func (AttackAction) handle(g *Game) state {
 	return stateGetNextAction{}
 }
 
+func (AttackAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
+	return false
+}
+
 func (RepairAction) handle(g *Game) state {
 	return stateGetNextAction{}
 }
@@ -307,6 +395,11 @@ func (RepairAction) handle(g *Game) state {
 func (PowwowAction) handle(g *Game) state {
 	return stateGetNextAction{}
 }
+
+func (PowwowAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
+	return false
+}
+
 
 func (QuitAction) handle(g *Game) state {
 	g.respond("Do you really want to quit (Y/N)?", nil)
