@@ -16,7 +16,10 @@ var g *mb.Game
 
 func appHandler(w http.ResponseWriter, r *http.Request) {
 	filename := r.URL.Path
-	if filename == "/" {
+	if len(filename) > 0 && strings.HasPrefix(filename, "/") {
+		filename = filename[1:]
+	}
+	if filename == "" {
 		filename = "index.html"
 	}
 	filename = strings.ToLower("../client/app/" + filename)
@@ -25,6 +28,9 @@ func appHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasSuffix(filename, ".css") {
 		w.Header()["Content-Type"] = []string{"text/css"}
+	}
+	if strings.HasSuffix(filename, ".jpg") {
+		w.Header()["Content-Type"] = []string{"image/JPEG"}
 	}
 	log.Printf("%s\n", filename)
 	if body, err := ioutil.ReadFile(filename); err != nil {
