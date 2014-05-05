@@ -125,6 +125,7 @@ type Chiefdom struct {
 	Counter      *ChiefdomCounter
 	IsMounded    bool
 	IsControlled bool
+	CanBuild 		 bool
 	LandIndex    int // index into Board.Lands
 }
 

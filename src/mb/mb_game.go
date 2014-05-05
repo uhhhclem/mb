@@ -83,6 +83,7 @@ func (g *Game) HandleRequest(q Request) {
 			// if there's a response set, send it and wait for the next request.
 			if g.Response != nil {
 				g.Board.WarpathActions = g.availableWarpathActions()
+				g.markBuildableChiefdoms()
 				return
 			}
 		}

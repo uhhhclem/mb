@@ -36,6 +36,7 @@ type RepairAction int
 type PowwowAction int
 type QuitAction int
 
+// warpathAction is used to indicate whether the action can currently be performed on the warpath.
 type warpathAction interface {
 	isEnabledOnWarpath(g *Game, t Tribe) bool
 }
@@ -82,21 +83,20 @@ func (g *Game) availableWarpathActions() map[string][]FrontEndAction {
 		for _, s := range actions {
 			if at, ok := s.Type.(warpathAction); ok {
 					f := FrontEndAction{s, at.isEnabledOnWarpath(g, t), 0}
-					switch s.Cost {
-					case ChiefdomValueCost:
-						// TODO
-						f.ActualCost = 99
-					case PalisadeValueCost:
-						// TODO
-						f.ActualCost = 99
-					default:
-						f.ActualCost = int(s.Cost)						
-					}
+					f.ActualCost = int(s.Cost)						
 					result[tribeNames[t]] = append(result[tribeNames[t]], f)
 				}
 			}
 		}
 	return result
+}
+
+func (g *Game) markBuildableChiefdoms() {
+	for _, c := range g.Board.Chiefdoms {
+		if c != nil {
+			c.CanBuild = BuildAction(0).isEnabledForChiefdom(g, *c)
+		}
+	}
 }
 
 // finder is a function that finds a unique game object given its prefix.
@@ -365,12 +365,41 @@ func (a IncorporateAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
 	return err == nil
 }
 
-func (BuildAction) handle(g *Game) state {
-	return stateGetNextAction{}
+func (a BuildAction) handle(g *Game) state {
+	l := g.Action.Target.(Land)
+	s, err := a.perform(g, l, true)
+	if err != nil {
+		g.Error = err
+	}
+	return s
 }
 
-func (BuildAction) isEnabledOnWarpath(g *Game, t Tribe) bool {
-	return false
+func (a BuildAction) isEnabledForChiefdom(g *Game, c Chiefdom) bool {
+	l := g.Board.Lands[c.LandIndex]
+	_, err := a.perform(g, l, false)
+	return err == nil
+}
+
+func (BuildAction) perform(g *Game, l Land, mutate bool) (state, error) {
+	var err error
+	c := g.Board.Chiefdoms[l.Index]
+
+	switch {
+	case c.IsMounded:
+		err = fmt.Errorf("%s is already mounded.")
+	case !c.IsControlled:
+		err = fmt.Errorf("You do not control %s yet.")
+	case c.getValue() > g.Board.ActionPoints:
+		err = fmt.Errorf("Not enough APs available; %d required.", c.getValue())
+	case !mutate:
+		break
+	default:
+		c.IsMounded = true
+		g.Action.ActualCost = c.getValue()
+		g.logEvent("Built mound for chiefdom in %s.", l.Name)
+	}
+
+	return stateGetNextAction{}, err
 }
 
 func (FortifyAction) handle(g *Game) state {
