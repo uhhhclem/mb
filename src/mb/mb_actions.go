@@ -245,7 +245,7 @@ func (g *Game) advancePeacePipe(oldLand, newLand Land) {
 	newLand = g.Board.Lands[newLand.Index+1]
 	if !newLand.IsWilderness {
 		g.drawChiefdomCounter(newLand)
-		g.logEvent("Placed new chiefdom (%s) in %s.", g.Board.Chiefdoms[newLand.Index], newLand)
+		g.logEvent("Explored new chiefdom (%s) in %s.", g.Board.Chiefdoms[newLand.Index], newLand)
 	}
 }
 
@@ -394,9 +394,10 @@ func (BuildAction) perform(g *Game, l Land, mutate bool) (state, error) {
 	case !mutate:
 		break
 	default:
-		c.IsMounded = true
 		g.Action.ActualCost = c.getValue()
+		c.IsMounded = true
 		g.logEvent("Built mound for chiefdom in %s.", l.Name)
+		g.executedAction()
 	}
 
 	return stateGetNextAction{}, err
